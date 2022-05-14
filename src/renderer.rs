@@ -1,16 +1,65 @@
-use winapi::{
-	shared::windef::HGLRC, 
-	um::wingdi::wglCreateContext
-};
+mod os;
+
+use crate::utils::Color;
+
+#[cfg(unix)]
+pub type DeviceContextHandle = os::unix::DeviceContextHandle;
+#[cfg(unix)]
+pub type RenderingContextHandle = os::unix::RenderingContextHandle;
+
+#[cfg(windows)]
+pub type DeviceContextHandle = os::windows::DeviceContextHandle;
+#[cfg(windows)]
+pub type RenderingContextHandle = os::windows::RenderingContextHandle;
+
+pub enum Interface {
+	OpenGL
+}
 
 pub struct Renderer {
-	context: HGLRC
+	interface: Interface,
+	context: RenderingContextHandle
 }
 
 impl Renderer {
-	pub fn new(device_context: DeviceContext) -> Self {
+	pub fn new(context_handle: DeviceContextHandle, interface: Interface) -> Self {
+		let context = match interface {
+			Interface::OpenGL => create_opengl_context(context_handle)
+		};
+
 		Self {
-			context: unsafe { wglCreateContext(window_handle) }
+			interface,
+			context 
 		}
 	}
+
+	pub fn clear(&mut self, color: Color) {
+		
+	}
+
+	pub fn display(&mut self) {
+
+	}
+}
+
+impl Drop for Renderer {
+	fn drop(&mut self) {
+		#[cfg(unix)]
+		match self.interface {
+			Interface::OpenGL => os::unix::delete_opengl_context(self.context)
+		}
+
+		#[cfg(windows)]
+		match self.interface {
+			Interface::OpenGL => os::windows::delete_opengl_context(self.context)
+		}
+	}
+}
+
+fn create_opengl_context(context_handle: DeviceContextHandle) -> RenderingContextHandle {
+	#[cfg(unix)]
+	return os::unix::create_opengl_context(context_handle);
+
+	#[cfg(windows)]
+	return os::windows::create_opengl_context(context_handle);
 }

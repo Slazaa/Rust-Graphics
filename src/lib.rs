@@ -1,2 +1,2 @@
 pub mod renderer;
-mod opengl;
+pub mod utils;
