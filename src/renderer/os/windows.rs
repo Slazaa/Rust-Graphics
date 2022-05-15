@@ -12,9 +12,15 @@ use winapi::{
 pub type DeviceContextHandle = HDC;
 pub type RenderingContextHandle = HGLRC;
 
-pub fn create_opengl_context(context_handle: DeviceContextHandle) -> RenderingContextHandle {
+pub fn create_opengl_context(context_handle: DeviceContextHandle) -> Result<RenderingContextHandle, String> {
 	unsafe {
-		wglCreateContext(context_handle)
+		let context = wglCreateContext(context_handle);
+
+		if context.is_null() {
+			return Err("Failed to create OpenGL context".to_owned());
+		} 
+
+		Ok(context)
 	}
 }
 

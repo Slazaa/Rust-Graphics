@@ -22,15 +22,20 @@ pub struct Renderer {
 }
 
 impl Renderer {
-	pub fn new(context_handle: DeviceContextHandle, interface: Interface) -> Self {
+	pub fn new(context_handle: DeviceContextHandle, interface: Interface) -> Result<Self, String> {
 		let context = match interface {
 			Interface::OpenGL => create_opengl_context(context_handle)
 		};
 
-		Self {
+		let context = match context {
+			Ok(x) => x,
+			Err(e) => return Err(e)
+		};
+
+		Ok(Self {
 			interface,
 			context 
-		}
+		})
 	}
 
 	pub fn clear(&mut self, color: Color) {
@@ -56,7 +61,7 @@ impl Drop for Renderer {
 	}
 }
 
-fn create_opengl_context(context_handle: DeviceContextHandle) -> RenderingContextHandle {
+fn create_opengl_context(context_handle: DeviceContextHandle) -> Result<RenderingContextHandle, String> {
 	#[cfg(unix)]
 	return os::unix::create_opengl_context(context_handle);
 
