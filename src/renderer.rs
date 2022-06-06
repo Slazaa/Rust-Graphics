@@ -1,70 +1,56 @@
 mod os;
 
-use crate::utils::Color;
+use crate::utils::{Interface, Color};
 
 #[cfg(unix)]
-pub type DeviceContextHandle = os::unix::DeviceContextHandle;
-#[cfg(unix)]
-pub type RenderingContextHandle = os::unix::RenderingContextHandle;
+use os::unix::*;
 
 #[cfg(windows)]
-pub type DeviceContextHandle = os::windows::DeviceContextHandle;
-#[cfg(windows)]
-pub type RenderingContextHandle = os::windows::RenderingContextHandle;
-
-pub enum Interface {
-	OpenGL
-}
+use os::windows::*;
 
 pub struct Renderer {
-	interface: Interface,
-	context: RenderingContextHandle
+	device_context: DeviceContextHandle,
+    rendering_context: RenderingContextHandle,
+	interface: Interface
 }
 
 impl Renderer {
-	pub fn new(context_handle: DeviceContextHandle, interface: Interface) -> Result<Self, String> {
-		let context = match interface {
-			Interface::OpenGL => create_opengl_context(context_handle)
-		};
+	pub fn new(device_context: DeviceContextHandle, interface: Interface) -> Self {
+        let rendering_context = create_context(device_context, interface);
+	
+        unsafe {
+            if winapi::um::wingdi::wglGetCurrentContext().is_null() {
+                panic!("No current context");
+            }
 
-		let context = match context {
-			Ok(x) => x,
-			Err(e) => return Err(e)
-		};
+            gl::load_with(|s| get_proc_address(s).unwrap() as *const _);
+        }
 
-		Ok(Self {
-			interface,
-			context 
-		})
+        Self {
+			device_context,
+            rendering_context,
+			interface
+		}
 	}
 
 	pub fn clear(&mut self, color: Color) {
-		
+        unsafe {
+            match self.interface {
+                Interface::OpenGL => {
+                    let color = color.normalize();
+                    gl::ClearColor(color[0], color[1], color[2], color[3]);
+                }
+            }
+        }
 	}
 
 	pub fn display(&mut self) {
-
+		
 	}
 }
 
 impl Drop for Renderer {
-	fn drop(&mut self) {
-		#[cfg(unix)]
-		match self.interface {
-			Interface::OpenGL => os::unix::delete_opengl_context(self.context)
-		}
-
-		#[cfg(windows)]
-		match self.interface {
-			Interface::OpenGL => os::windows::delete_opengl_context(self.context)
-		}
-	}
-}
-
-fn create_opengl_context(context_handle: DeviceContextHandle) -> Result<RenderingContextHandle, String> {
-	#[cfg(unix)]
-	return os::unix::create_opengl_context(context_handle);
-
-	#[cfg(windows)]
-	return os::windows::create_opengl_context(context_handle);
+    fn drop(&mut self) {
+        delete_context(self.rendering_context, self.interface);
+    }
 }
