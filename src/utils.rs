@@ -55,13 +55,13 @@ impl Color {
 	pub fn cyan() -> Self {
 		Color::rgb(0, 255, 255)
 	}
-    
-    pub fn normalize(&self) -> [f32; 4] {
-        [
-            (self.red / 255).into(),
-            (self.green / 255).into(),
-            (self.blue / 255).into(),
-            (self.alpha / 255).into()
-        ]
-    }
+	
+	pub fn normalize(&self) -> [f32; 4] {
+		[
+			(self.red / 255).into(),
+			(self.green / 255).into(),
+			(self.blue / 255).into(),
+			(self.alpha / 255).into()
+		]
+	}
 }
