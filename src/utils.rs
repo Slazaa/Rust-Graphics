@@ -1,8 +1,3 @@
-#[derive(Clone, Copy)]
-pub enum Interface {
-	OpenGL
-}
-
 pub struct Color {
 	pub red: u8,
 	pub green: u8,

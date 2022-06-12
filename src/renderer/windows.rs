@@ -1,32 +1,67 @@
-use std::ffi::CString;
-
 use winapi::{
-	shared::{
-		minwindef::PROC,
-		windef::{HDC, HGLRC}
-	},
-	um::libloaderapi::{GetModuleHandleA, GetProcAddress}
+    shared::windef::{HDC, HWND},
+    um::{
+        wingdi::*,
+        winuser::{GetDC, ReleaseDC}
+    }
 };
 
+pub type WindowHandle = HWND;
 pub type DeviceContextHandle = HDC;
-pub type RenderingContextHandle = HGLRC;
-pub type Proc = PROC;
 
-pub fn get_proc_address(proc_name: &str) -> Result<Proc, String> {
-	let proc_name = CString::new(proc_name).unwrap();
-	let module_name = CString::new("OpenGL32.dll").unwrap();
+pub fn create_context(window_handle: WindowHandle) -> Result<DeviceContextHandle, String> {
+	unsafe {
+		let mut pfd: PIXELFORMATDESCRIPTOR = std::mem::zeroed();
 
-	let module = unsafe { GetModuleHandleA(module_name.as_ptr()) };
+		pfd.nSize = std::mem::size_of::<PIXELFORMATDESCRIPTOR>() as u16;
+		pfd.nVersion = 1;
+		pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+		pfd.iPixelType = PFD_TYPE_RGBA;
+		pfd.cColorBits = 32;
+		//pfd.cRedBits = 0;
+		//pfd.cRedShift = 0;
+		//pfd.cGreenBits = 0;
+		//pfd.cGreenShift = 0;
+		//pfd.cBlueBits = 0;
+		//pfd.cBlueShift = 0;
+		//pfd.cAlphaBits = 0;
+		//pfd.cAlphaShift = 0;
+		//pfd.cAccumBits = 0;
+		//pfd.cAccumRedBits = 0;
+		//pfd.cAccumGreenBits = 0;
+		//pfd.cAccumBlueBits = 0;
+		//pfd.cAccumAlphaBits = 0;
+		pfd.cDepthBits = 24;
+		pfd.cStencilBits = 8;
+		//pfd.cAuxBuffers = 0;
+		pfd.iLayerType = PFD_MAIN_PLANE;
+		//pfd.bReserved = 0;
+		//pfd.dwLayerMask = 0;
+		//pfd.dwVisibleMask = 0;
+		//pfd.dwDamageMask = 0;
 
-	if module.is_null() {
-		return Err("Invalid proc name".to_owned());
+		let dc = GetDC(window_handle);
+
+		if dc.is_null() {
+			return Err("Failed to get device context".to_owned());
+		}
+
+		let pixel_format = ChoosePixelFormat(dc, &pfd);
+
+		if pixel_format == 0 {
+			return Err("Failed to choose pixel format".to_owned());
+		}
+
+		if SetPixelFormat(dc, pixel_format, &pfd) == 0 {
+			return Err("Failed to set pixel format".to_owned());
+		}
+
+		Ok(dc)
 	}
+}
 
-	let proc_addr = unsafe { GetProcAddress(module, proc_name.as_ptr()) };
-
-	if proc_addr.is_null() {
-		return Err("Invalid proc name".to_owned());
+pub fn release_context(window_handle: WindowHandle, context_handle: DeviceContextHandle) {
+	unsafe {
+		ReleaseDC(window_handle, context_handle);
 	}
-
-	Ok(proc_addr)
 }

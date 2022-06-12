@@ -1,4 +1,3 @@
-pub mod opengl;
 pub mod unix;
 pub mod windows;
 
@@ -8,40 +7,22 @@ use unix::*;
 #[cfg(windows)]
 use windows::*;
 
-use crate::utils::{Interface, Color};
+use crate::utils::Color;
 
 pub struct Renderer {
-	device_context: DeviceContextHandle,
-	rendering_context: RenderingContextHandle,
-	interface: Interface,
-	current: bool,
+    window_handle: WindowHandle,
+	device_context: DeviceContextHandle
 }
 
 impl Renderer {
-	pub fn new(device_context: DeviceContextHandle, interface: Interface) -> Self {
-		let mut renderer = Self {
-			device_context,
-			rendering_context: match interface {
-				Interface::OpenGL => opengl::create_context(device_context)
-			},
-			interface,
-			current: false
-		};
-
-		renderer.make_current();
-
-		//gl::load_with(|s| get_proc_address(s).unwrap() as *const _);
-
-		renderer
-	}
-
-	pub fn make_current(&mut self) {
-		opengl::make_current(self.device_context, self.rendering_context);
-		self.current = true;
-	}
-
-	pub fn is_current(&self) -> bool {
-		self.current
+	pub fn new(window_handle: WindowHandle) -> Result<Self, String> {
+        Ok(Self {
+            window_handle,
+            device_context: match create_context(window_handle) {
+                Ok(x) => x,
+                Err(e) => return Err(e)
+            }
+        })
 	}
 
 	pub fn clear(&mut self, color: Color) {
@@ -49,16 +30,12 @@ impl Renderer {
 	}
 
 	pub fn display(&mut self) {
-		match self.interface {
-			Interface::OpenGL => opengl::display(self.device_context)
-		}
+        todo!();
 	}
 }
 
 impl Drop for Renderer {
 	fn drop(&mut self) {
-		match self.interface {
-			Interface::OpenGL => opengl::delete_context(self.rendering_context)
-		}
+        release_context(self.window_handle, self.device_context);
 	}
 }
